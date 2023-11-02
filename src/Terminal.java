@@ -1,3 +1,6 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 import java.io.File;
 /**
@@ -80,6 +83,15 @@ public class Terminal {
      * this is Parser object for the terminal
      * */
     Parser parser;
+    /**
+     * a map where I can save all the commands used during the life
+     * of the terminal
+     * */
+    Map<Integer, String> dictionary = new HashMap<>();
+    /**
+     * an integer where I keep track of how many commands used
+     * */
+    int numCommand = 0;
     //Implement each command in a method, for example:
     /**
      * this is the terminal constructor
@@ -87,6 +99,36 @@ public class Terminal {
     public Terminal(){
         parser = new Parser();
     }
+
+
+    /**
+     * function to print strings
+     * @param S the string to be printed
+     * */
+    public void print_string(String S)
+    {
+        if (S != null)
+            System.out.println(S);
+    }
+
+    /**
+     * function to check if the file path is absolute
+     * @param Args the string to be checked
+     * @return true if absolute and false otherwise
+     * */
+    public boolean is_absolute(String Args)
+    {
+        int c = 0;
+        for (char l: Args.toCharArray()
+        ) {
+            if (l == '\\')
+                c++;
+            if (c > 0)
+                return true;
+        }
+        return false;
+    }
+
     /**
      * this function is command implementation for
      * printing the current working directory
@@ -94,7 +136,6 @@ public class Terminal {
      * @return the current working directory
      * */
     public String pwd(){
-        System.out.println(System.getProperty("user.dir"));
         return System.getProperty("user.dir");
     }
     /**
@@ -110,7 +151,7 @@ public class Terminal {
         }
         else if (Args[1].equals(".."))
         {
-            File me = new File(System.getProperty("user.dir"));
+            File me = new File(pwd());
             File my_parent = me.getParentFile();
             if (my_parent == null)
             {
@@ -123,17 +164,9 @@ public class Terminal {
         }
         else
         {
-            int c = 0;
-            for (char l: Args[1].toCharArray()
-                 ) {
-                if (l == '\\')
-                    c++;
-                if (c > 0)
-                    break;
-            }
             File directory;
-            if (c == 0)
-                directory = new File(System.getProperty("user.dir") + "\\" + Args[1]);
+            if (!is_absolute(Args[1]))
+                directory = new File(pwd() + "\\" + Args[1]);
             else
                 directory = new File(Args[1]);
             if (directory.exists() && directory.isDirectory())
@@ -142,7 +175,63 @@ public class Terminal {
                 System.out.println("there is no such directory with this name.");
         }
     }
+    /**
+     * this function is command implementation for
+     * counting lines, words and chars in a file
+     *
+     * @param Args this is the array of command line arguments parsed
+     * @return the string to be printed with full information.
+     * */
+    public String wc(String[] Args) {
+        File target;
+        int ch;
+        int lineCount = 0;
+        int charCount = 0;
+        int wordCount = 0;
+        boolean newLine = false;
 
+        if (Args.length != 2) {
+            System.out.println("invalid arguments, Usage: wc <file name>");
+            return null;
+        }
+        if (!is_absolute(Args[1]))
+            target = new File(pwd() + "\\" + Args[1]);
+        else
+            target = new File(Args[1]);
+        try (FileReader fileReader = new FileReader(target))
+        {
+            while ((ch = fileReader.read()) != -1)
+            {
+                charCount++;
+                if (ch == ' ')
+                    wordCount++;
+                else if (ch == '\n') {
+                    wordCount++;
+                    lineCount++;
+                    newLine = true;
+                }
+                else
+                    newLine = false;
+            }
+
+            if (!newLine)
+                lineCount++;
+
+            return String.format("%d %d %d %s", lineCount, wordCount, charCount, target.getName());
+
+        } catch (IOException e) {
+            System.out.println("there is no such file with this name.");
+        }
+        return null;
+    }
+    /**
+     * this function is commandline implementation
+     * of showing the history command
+     * */
+    public void history()
+    {
+        dictionary.forEach((key, value) -> System.out.printf("%d %s%n", key, value));
+    }
 
     //This method will choose the suitable command method to be called
     /**
@@ -156,10 +245,23 @@ public class Terminal {
         {
             case "cd":
                 cd(Args);
+                numCommand += 1;
+                dictionary.put(numCommand, "cd");
                 break;
             case "pwd":
-                pwd();
+                print_string(pwd());
+                numCommand += 1;
+                dictionary.put(numCommand, "pwd");
                 break;
+            case "wc":
+                print_string(wc(Args));
+                numCommand += 1;
+                dictionary.put(numCommand, "wc");
+                break;
+            case "history":
+                history();
+                numCommand += 1;
+                dictionary.put(numCommand, "history");
             case "exit":
                 break;
             default:
