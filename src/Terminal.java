@@ -233,6 +233,113 @@ public class Terminal {
         dictionary.forEach((key, value) -> System.out.printf("%d %s%n", key, value));
     }
 
+    /**
+     * List the contents of the current directory sorted alphabetically.
+     */
+    public void ls() {
+        File currentDirectory = new File(System.getProperty("user.dir"));
+        File[] files = currentDirectory.listFiles();
+
+        if (files != null) {
+            Arrays.sort(files);
+            for (File file : files) {
+                System.out.println(file.getName());
+            }
+        }
+    }
+
+    /**
+     * List the contents of the current directory in reverse order.
+     */
+    public void lsReverse() {
+        File currentDirectory = new File(System.getProperty("user.dir"));
+        File[] files = currentDirectory.listFiles();
+
+        if (files != null) {
+            Arrays.sort(files, Collections.reverseOrder());
+            for (File file : files) {
+                System.out.println(file.getName());
+            }
+        }
+    }
+
+    /**
+     * Create directories for each argument.
+     *
+     * @param Args an array of directory names or paths
+     */
+    public void mkdir(String[] Args) {
+        for (String arg : Args) {
+            File directory = new File(arg);
+            if (!directory.exists()) {
+                if (directory.mkdirs()) {
+                    System.out.println("Directory created: " + directory.getAbsolutePath());
+                } else {
+                    System.out.println("Failed to create directory: " + directory.getAbsolutePath());
+                }
+            } else {
+                System.out.println("Directory already exists: " + directory.getAbsolutePath());
+            }
+        }
+    }
+
+    /**
+     * Remove directories based on the provided arguments.
+     *
+     * @param Args an array of arguments, e.g., "*" or directory paths
+     */
+    public void rmdir(String[] Args) {
+        for (String arg : Args) {
+            File directory = new File(arg);
+
+            if (arg.equals("*")) {
+                // Remove all empty directories in the current directory
+                File currentDirectory = new File(System.getProperty("user.dir"));
+                File[] subdirectories = currentDirectory.listFiles();
+
+                if (subdirectories != null) {
+                    for (File subdirectory : subdirectories) {
+                        if (subdirectory.isDirectory() && subdirectory.list().length == 0) {
+                            if (subdirectory.delete()) {
+                                System.out.println("Removed directory: " + subdirectory.getAbsolutePath());
+                            } else {
+                                System.out.println("Failed to remove directory: " + subdirectory.getAbsolutePath());
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Remove the specified directory if it is empty
+                if (directory.exists() && directory.isDirectory() && directory.list().length == 0) {
+                    if (directory.delete()) {
+                        System.out.println("Removed directory: " + directory.getAbsolutePath());
+                    } else {
+                        System.out.println("Failed to remove directory: " + directory.getAbsolutePath());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Create a new file with the specified path.
+     *
+     * @param path The path of the file to create.
+     */
+    public void touch(String path) {
+        File file = new File(path);
+
+        try {
+            if (file.createNewFile()) {
+                System.out.println("File created: " + file.getAbsolutePath());
+            } else {
+                System.out.println("File already exists or could not be created: " + file.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            System.out.println("Error creating the file: " + e.getMessage());
+        }
+    }
+
     //This method will choose the suitable command method to be called
     /**
      * this function is to choose the proper implementation
@@ -262,6 +369,27 @@ public class Terminal {
                 history();
                 numCommand += 1;
                 dictionary.put(numCommand, "history");
+                case "ls":
+                ls();
+                break;
+            case "ls-r":
+                lsReverse();
+                break;
+            case "mkdir":
+                mkdir(Arrays.copyOfRange(Args, 1, Args.length));
+                break;
+            case "rmdir":
+                rmdir(Arrays.copyOfRange(Args, 1, Args.length));
+                break;
+            case "touch":
+                if (Args.length == 2) {
+                    touch(Args[1]);
+                    numCommand += 1;
+                    dictionary.put(numCommand, "touch");
+                } else {
+                    System.out.println("Invalid arguments, Usage: touch <file path>");
+                }
+                break;
             case "exit":
                 break;
             default:
